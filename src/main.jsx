@@ -198,7 +198,7 @@ function SettleWise({ user, onLogout }) {
         </nav>
         <div className="sidebar-bottom">
           <button className="add-expense" onClick={() => navigate("create")}><Plus size={24} /> Add Expense</button>
-          <button className="side-link"><HelpCircle size={20} /> Help</button>
+          <button className="side-link" onClick={() => alert("For help and support, please refer to the README or contact your administrator.")}><HelpCircle size={20} /> Help</button>
           <button className="side-link" onClick={onLogout}><LogOut size={20} /> Sign Out</button>
         </div>
       </aside>
@@ -280,6 +280,7 @@ function NavButton({ icon: Icon, label, active, onClick }) {
 
 function DashboardView({ group, expenses, payments, onCreate, onPaymentRecorded }) {
   const balances = group.balances.members;
+  const [selectedMember, setSelectedMember] = useState(null);
   return (
     <div className="page-stack">
       <div className="dashboard-hero">
@@ -298,10 +299,10 @@ function DashboardView({ group, expenses, payments, onCreate, onPaymentRecorded 
         <h2>One-number summary</h2>
         <div className="balance-grid">
           {balances.map((member) => (
-            <div className="balance-tile" key={member.id}>
+            <button className="balance-tile" key={member.id} type="button" onClick={() => setSelectedMember(member)}>
               <span>{member.display_name}</span>
               <strong className={member.balanceMinor >= 0 ? "good" : "bad"}>{money(member.balanceMinor)}</strong>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -333,7 +334,45 @@ function DashboardView({ group, expenses, payments, onCreate, onPaymentRecorded 
           ))}
         </div>
       </section>
+      {selectedMember && <MemberTraceModal member={selectedMember} onClose={() => setSelectedMember(null)} />}
     </div>
+  );
+}
+
+function MemberTraceModal({ member, onClose }) {
+  return (
+    <>
+      <div className="drawer-backdrop" style={{ display: 'block', zIndex: 100 }} onClick={onClose} />
+      <div className="trace-modal" role="dialog" aria-modal="true" aria-labelledby="trace-title">
+        <header className="trace-header">
+          <h2 id="trace-title">{member.display_name}'s Balance</h2>
+          <button className="drawer-close" style={{ display: 'grid' }} onClick={onClose} aria-label="Close"><X size={20} /></button>
+        </header>
+        <div className="trace-content">
+          <div className="trace-summary">
+            <span>Final Balance</span>
+            <strong className={member.balanceMinor >= 0 ? "good" : "bad"}>{money(member.balanceMinor)}</strong>
+          </div>
+          <div className="trace-list">
+            {member.trace.length === 0 ? (
+              <p className="muted">No transactions found.</p>
+            ) : (
+              member.trace.map((item, index) => (
+                <div className="trace-item" key={index}>
+                  <div>
+                    <strong>{item.description}</strong>
+                    <span>{item.date} · {String(item.kind).replace('_', ' ')}</span>
+                  </div>
+                  <strong className={item.amountMinor >= 0 ? "good" : "bad"}>
+                    {item.amountMinor > 0 ? '+' : ''}{money(item.amountMinor)}
+                  </strong>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -659,6 +698,8 @@ function CreateExpenseView({ group, members, onBack, onSaved }) {
 
 function AnomaliesView({ groupId, imports, onImported }) {
   const [report, setReport] = useState(null);
+  const [resolving, setResolving] = useState(false);
+
   async function upload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -667,11 +708,42 @@ function AnomaliesView({ groupId, imports, onImported }) {
     setReport(data.report);
     onImported();
   }
+
+  async function handleResolve(anomalyId, status) {
+    try {
+      setResolving(true);
+      await api(`/api/import-anomalies/${anomalyId}`, { method: "PATCH", body: { resolutionStatus: status } });
+      if (report) {
+        const updatedReport = await api(`/api/imports/${report.id}`);
+        setReport(updatedReport.report);
+      }
+      onImported();
+    } finally {
+      setResolving(false);
+    }
+  }
+
   return (
     <div className="page-stack">
       <div className="page-title-row"><div><h1>Anomalies</h1><p>Import report and review queue.</p></div><label className="upload-button"><Upload size={18} /> Upload CSV<input type="file" accept=".csv,text/csv" onChange={upload} /></label></div>
       <section className="white-panel">
-        {(report?.anomalies || []).map((item) => <div className="anomaly-line" key={item.id}><strong>{item.code}</strong><span>{item.message}</span><em>{item.action}</em></div>)}
+        {(report?.anomalies || []).map((item) => (
+          <div className="anomaly-line" key={item.id}>
+            <div>
+              <strong>{item.code}</strong>
+              <span>{item.message}</span>
+              <em>{item.action}</em>
+            </div>
+            {item.resolution_status === 'pending_approval' && (
+              <div className="anomaly-actions">
+                <button className="secondary-action" disabled={resolving} onClick={() => handleResolve(item.id, 'approved')}><CheckCircle size={16} /> Approve</button>
+                <button className="secondary-action danger" disabled={resolving} onClick={() => handleResolve(item.id, 'rejected')}><X size={16} /> Reject</button>
+              </div>
+            )}
+            {item.resolution_status === 'approved' && <span className="status-badge good">Approved</span>}
+            {item.resolution_status === 'rejected' && <span className="status-badge bad">Rejected</span>}
+          </div>
+        ))}
         {!report && imports.map((item) => <button className="ledger-row" key={item.id} onClick={async () => setReport((await api(`/api/imports/${item.id}`)).report)}><strong>{item.file_name}</strong><span>{item.summary.anomalies || 0} anomalies</span></button>)}
         {!report && imports.length === 0 && <p className="muted">No imports yet.</p>}
       </section>
