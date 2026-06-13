@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { getGroupBalances } from "./balances.js";
 import { openDatabase } from "./db.js";
 import { importExpensesCsv, getImportReport, updateAnomalyResolution } from "./importer.js";
-import { allocateByWeights, allocateEvenly, baseMinorFrom, fromMinor, parseAmount, toMinor } from "./money.js";
+import { allocateByWeights, allocateEvenly, baseMinorFrom, fromMinor, parseAmount } from "./money.js";
 import { makeToken, verifyPassword } from "./security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -308,7 +308,7 @@ function createExpense(groupId, userId, body) {
   } else if (splitType === "exact") {
     splits = (body.splits || []).map((split) => ({
       memberId: Number(split.memberId),
-      owedMinor: toMinor(Number(split.amount))
+      owedMinor: baseMinorFrom(Number(split.amount), parsedAmount.currency, exchangeRate)
     }));
   } else if (splitType === "percent" || splitType === "shares") {
     splits = allocateByWeights(

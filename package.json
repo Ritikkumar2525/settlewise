@@ -12,6 +12,7 @@
     "test": "node --test server/**/*.test.js"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.0",
     "@vitejs/plugin-react": "^6.0.2",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
