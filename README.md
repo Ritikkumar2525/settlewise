@@ -40,9 +40,15 @@ npm run preview
 
 ## Importing `expenses_export.csv`
 
-Use the Import tab and upload the CSV exactly as received. The importer parses the file, creates expenses/payments where safe, blocks unsafe rows, and writes a report to the `imports`, `import_rows`, and `import_anomalies` tables.
+The latest 2026 dataset has been extracted and stored as `fixtures/expenses_export.csv`.
 
-The assignment CSV was not present in this workspace, so `fixtures/sample_expenses_export.csv` is included only as a repeatable test fixture. It is not required by the app and does not replace the assignment file.
+To automatically clear the database, seed it, ingest the new CSV data, and produce a detailed anomaly report, run:
+
+```bash
+node scripts/import_csv.js
+```
+
+This will parse the file, detect anomalies (like typos, missing currencies, and percentage mismatches), create expenses/payments, and output an `import_report.json` in the root directory.
 
 ## AI Used
 

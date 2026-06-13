@@ -3,3 +3,6 @@ data/
 dist/
 .DS_Store
 *.log
+
+*.sqlite
+*.db

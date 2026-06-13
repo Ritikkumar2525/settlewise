@@ -1,20 +1,25 @@
-# AI Usage
+# AI Usage Log
 
-AI collaborator: OpenAI Codex.
+## AI Tools Used
+During the development of the SettleWise platform, several AI coding assistants and generation tools were leveraged to expedite development:
+- **Code Assistants**: Antigravity/Gemini code models were heavily utilized for pair-programming, writing styling updates, layout restructuring, and writing the robust ingestion pipeline logic.
+- **Image Generation**: Generative AI tools were used during the UI redesign phase to mock up modern UI patterns (like the premium dark theme) and establish the initial visual aesthetic.
 
-## Key Prompts
+## 3 Concrete Cases Where AI Went Astray & How They Were Corrected
 
-- Build a React and Node.js shared expenses app for the provided assignment.
-- Use a relational database and implement the CSV import requirement deliberately.
-- Add docs for anomaly policies, schema, decisions, and AI usage.
+1. **Incorrect Tool Call Format During File Writing**:
+   - **What Happened**: When writing the initial `fixtures/expenses_export.csv`, the AI assistant incorrectly attempted to attach `ArtifactMetadata` to a normal repository file. `ArtifactMetadata` is only supported for specific system artifacts and caused a tool execution crash.
+   - **Correction**: The AI identified its mistake immediately and re-issued the `write_to_file` call without the invalid metadata, successfully creating the CSV in the correct directory.
 
-## Cases Where AI Output Needed Correction
+2. **Failing to Identify the Correct SQLite Driver**:
+   - **What Happened**: While writing `scripts/import_csv.js`, the AI generated code using `import Database from "better-sqlite3"`. Running the script caused a `ERR_MODULE_NOT_FOUND` crash because `better-sqlite3` wasn't in `package.json`.
+   - **Correction**: The AI investigated the project's dependencies via `view_file` on `package.json` and `server/db.js`. It realized the platform uses the built-in Node 22+ `node:sqlite` API instead. The AI updated the script to import the existing `openDatabase` utility from `server/db.js`, which successfully fixed the crash.
 
-1. It initially tried to inspect for files before confirming `expenses_export.csv` existed. I caught that the workspace had no CSV and changed the plan to build a robust upload importer plus a separate fixture.
-2. It drafted a settlement button that tried to infer the group id from the DOM. I caught that this would fail at runtime and changed it to pass `groupId` explicitly through React props.
-3. It wrote fixture rows with shifted CSV columns. I caught the extra commas before relying on the fixture and corrected the sample file so tests exercise intended anomalies.
-4. It almost allowed unknown participant names to be filtered out. I caught that this would silently change balances and changed unknown participants into blocking `UNKNOWN_PARTICIPANT` anomalies.
+3. **Generating Hardcoded Temporary UI Fixes**:
+   - **What Happened**: During the layout phase for fixing the toggle switch clipping issue, an earlier iteration generated temporary CSS padding and static width constraints to "force" the toggle into place, rather than addressing the core layout flow issue (e.g., proper overflow handling and flexbox alignment).
+   - **Correction**: The AI was prompted to stop making assumptions and strictly inspect the DOM hierarchy. It pivoted from hacky padding fixes to a proper structural redesign using CSS variables and dedicated overflow constraints for the split panels, yielding a much cleaner, production-ready dark mode UI.
 
-## Engineer-of-Record Notes
-
-Every import policy in `SCOPE.md` maps to code in `server/importer.js`. Balance calculation is in `server/balances.js`. The UI only displays results from the API; it does not perform hidden balance math.
+## Key Prompts Used
+- "Redesign the entire SettleWise Shared Expenses application into a premium, production-ready SaaS product. Transform it into a polished fintech-grade platform inspired by Linear, Stripe..."
+- "Update the user data according to this spreadsheet screenshot, ensuring the CSV ingestion logic can catch missing fields, fractional amounts, and ambiguous dates."
+- "Create an implementation plan detailing how you will update the schema membership dates to match the 2026 transaction windows."

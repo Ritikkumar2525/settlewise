@@ -853,6 +853,19 @@ mark { background: var(--accent-light); color: var(--accent); border-radius: 3px
   background: var(--bg-secondary);
 }
 .trace-header h2 { font-size: 1.125rem; margin: 0; font-weight: 600; }
+.trace-header button {
+  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  transition: all 150ms ease;
+}
+.trace-header button:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
 
 .trace-content { padding: 20px; overflow-y: auto; display: grid; gap: 16px; }
 

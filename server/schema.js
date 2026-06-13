@@ -147,12 +147,12 @@ export function seedDefaults(db) {
 
   const group = db.prepare("SELECT id FROM groups WHERE name = ?").get("Flatmates");
   const people = [
-    ["Aisha", "2024-02-01", null],
-    ["Rohan", "2024-02-01", null],
-    ["Priya", "2024-02-01", null],
-    ["Meera", "2024-02-01", "2024-03-31"],
-    ["Dev", "2024-03-01", "2024-03-31"],
-    ["Sam", "2024-04-15", null]
+    ["Aisha", "2026-02-01", null],
+    ["Rohan", "2026-02-01", null],
+    ["Priya", "2026-02-01", null],
+    ["Meera", "2026-02-01", "2026-03-31"],
+    ["Dev", "2026-02-01", "2026-03-31"],
+    ["Sam", "2026-04-01", null]
   ];
 
   for (const [name, joinedOn, leftOn] of people) {

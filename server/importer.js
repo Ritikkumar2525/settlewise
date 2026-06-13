@@ -158,6 +158,13 @@ function processRecord(db, state, record) {
   const amount = parseAmount(getCell(raw, "amount"), getCell(raw, "currency"));
   if (!amount.ok) {
     anomalies.push(error("INVALID_AMOUNT", "Amount could not be parsed.", "Rows without a numeric amount are blocked.", "Blocked row."));
+  } else {
+    if (amount.thousandsTypo) {
+      anomalies.push(warning("THOUSANDS_SEPARATOR_TYPO", `Amount '${amount.raw}' contained a dot instead of a comma.`, "European formatting or typos using dots for thousands are normalized.", `Parsed as ${amount.amount}.`));
+    }
+    if (amount.missingCurrency) {
+      anomalies.push(warning("MISSING_CURRENCY", `Currency was missing for amount ${amount.amount}.`, "Empty currency fields default to the group's base currency.", `Imported as ${amount.currency}.`));
+    }
   }
 
   let exchangeRate = Number(getCell(raw, "exchangeRate"));

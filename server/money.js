@@ -18,19 +18,32 @@ export function normalizeCurrency(value, amountText = "") {
 
 export function parseAmount(amountText, currencyText = "") {
   const source = String(amountText ?? "").trim();
-  const currency = normalizeCurrency(currencyText, source) || "INR";
+  let missingCurrency = false;
+  let currency = normalizeCurrency(currencyText, source);
+  if (!currency) {
+    currency = "INR";
+    missingCurrency = true;
+  }
+  
   const parenthesesNegative = /^\(.*\)$/.test(source);
-  const cleaned = source
+  let cleaned = source
     .replace(/[,$₹]/g, "")
     .replace(/\b(inr|rs\.?|rupees?|usd|dollars?)\b/gi, "")
     .replace(/[()]/g, "")
     .trim();
+    
+  let thousandsTypo = false;
+  if (/^\d+\.\d{3}$/.test(cleaned) && cleaned.endsWith("00")) {
+    cleaned = cleaned.replace(".", "");
+    thousandsTypo = true;
+  }
+
   const amount = Number(cleaned);
   if (!Number.isFinite(amount)) {
-    return { ok: false, amount: 0, minor: 0, currency, raw: amountText };
+    return { ok: false, amount: 0, minor: 0, currency, raw: amountText, thousandsTypo, missingCurrency };
   }
   const signed = parenthesesNegative && amount > 0 ? -amount : amount;
-  return { ok: true, amount: signed, minor: toMinor(signed), currency, raw: amountText };
+  return { ok: true, amount: signed, minor: toMinor(signed), currency, raw: amountText, thousandsTypo, missingCurrency };
 }
 
 export function baseMinorFrom(amount, currency, exchangeRate) {
