@@ -1,0 +1,16 @@
+Date,Description,Paid By,Amount,Currency,Split Type,Participants,Split Values,Exchange Rate,Type,To
+2024-02-05,Groceries,Aisha,1200,INR,Equal,All,,,Expense,
+2024-02-05,Groceries,Aisha,1200,INR,Equal,All,,,Expense,
+03/10/2024,Trip dinner,Rohan,$60,USD,Equal,Aisha; Rohan; Priya; Dev,,,Expense,
+2024-03-20,Electricity,Rohan,4000,INR,Equal,All,,,Expense,
+2024-03-25,Internet,Sam,1800,INR,Equal,All,,,Expense,
+2024-04-20,Utilities,Meera,2000,INR,Equal,All,,,Expense,
+2024-04-22,Dinner,Rohan,900,INR,Exact,Aisha; Rohan; Priya,Aisha:300; Rohan:300; Priya:200,,Expense,
+2024-04-25,Cleaning,Priya,-600,INR,Equal,All,,,Expense,
+2024-04-27,Refund supplies,Priya,-500,INR,Equal,Aisha; Priya,,,Expense,
+2024-04-30,Settlement to Rohan,Aisha,500,INR,Equal,Aisha; Rohan,,,Settlement,Rohan
+,"Missing date",Aisha,100,INR,Equal,All,,,Expense,
+2024-04-25,Party,Aishaa,1000,INR,Equal,All,,,Expense,
+2024-04-25,Snacks,Aisha,1000,INR,Percent,Aisha; Rohan,Aisha:60%; Rohan:30%,,Expense,
+2024-04-25,Taxi,Aisha,1000,INR,Mystery,Aisha; Rohan,,,Expense,
+04/05/2024,Ambiguous cafe,Aisha,300,INR,Equal,Aisha; Rohan,,,Expense,
