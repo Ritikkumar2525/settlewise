@@ -175,9 +175,27 @@ function Dashboard({ user, onLogout }) {
             <Users size={16} /> Members
           </button>
         </nav>
+        {group && members.length === 0 && (
+          <div className="empty-callout">
+            <Users size={18} />
+            <div>
+              <strong>No members in this group yet</strong>
+              <p>Add members before recording expenses, payments, or importing the CSV.</p>
+            </div>
+            <button className="small-button" onClick={() => setActiveTab("members")}>
+              Add members
+            </button>
+          </div>
+        )}
 
         {group && activeTab === "overview" && (
-          <Overview group={group} payments={payments} members={activeMemberOptions} onSettled={() => refresh()} />
+          <Overview
+            group={group}
+            payments={payments}
+            members={activeMemberOptions}
+            onOpenMembers={() => setActiveTab("members")}
+            onSettled={() => refresh()}
+          />
         )}
         {group && activeTab === "expenses" && (
           <Expenses
@@ -217,8 +235,9 @@ function CreateGroup({ onCreated }) {
   );
 }
 
-function Overview({ group, payments, members, onSettled }) {
+function Overview({ group, payments, members, onOpenMembers, onSettled }) {
   const [selectedMemberId, setSelectedMemberId] = useState(group.balances.members[0]?.id ?? null);
+  const hasMembers = group.balances.members.length > 0;
   const selected = group.balances.members.find((member) => member.id === Number(selectedMemberId));
 
   return (
@@ -240,10 +259,18 @@ function Overview({ group, payments, members, onSettled }) {
               </strong>
             </button>
           ))}
+          {!hasMembers && (
+            <div className="empty-state">
+              <Users size={18} />
+              <span>No members to balance yet.</span>
+              <button className="small-button" onClick={onOpenMembers}>Add members</button>
+            </div>
+          )}
         </div>
         <h3>Settlement plan</h3>
         <div className="settlement-list">
-          {group.balances.settlements.length === 0 && <p className="muted">Settled up</p>}
+          {hasMembers && group.balances.settlements.length === 0 && <p className="muted">Settled up</p>}
+          {!hasMembers && <p className="muted">Add members before settlements can be calculated.</p>}
           {group.balances.settlements.map((settlement) => (
             <SettlementRow key={`${settlement.fromMemberId}-${settlement.toMemberId}`} groupId={group.id} settlement={settlement} onSettled={onSettled} />
           ))}
@@ -263,11 +290,13 @@ function Overview({ group, payments, members, onSettled }) {
       <section className="panel">
         <div className="section-title">
           <h3>Trace</h3>
-          <select value={selectedMemberId ?? ""} onChange={(event) => setSelectedMemberId(event.target.value)}>
-            {group.balances.members.map((member) => (
-              <option key={member.id} value={member.id}>{member.display_name}</option>
-            ))}
-          </select>
+          {hasMembers && (
+            <select value={selectedMemberId ?? ""} onChange={(event) => setSelectedMemberId(event.target.value)}>
+              {group.balances.members.map((member) => (
+                <option key={member.id} value={member.id}>{member.display_name}</option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="table-wrap">
           <table>
@@ -343,18 +372,31 @@ function PaymentForm({ groupId, members, onCreated }) {
   });
 
   useEffect(() => {
+    const memberIds = new Set(members.map((member) => String(member.id)));
     setForm((current) => ({
       ...current,
-      fromMemberId: current.fromMemberId || members[0]?.id || "",
-      toMemberId: current.toMemberId || members[1]?.id || members[0]?.id || ""
+      fromMemberId: memberIds.has(String(current.fromMemberId)) ? current.fromMemberId : members[0]?.id || "",
+      toMemberId: memberIds.has(String(current.toMemberId)) ? current.toMemberId : members[1]?.id || members[0]?.id || ""
     }));
   }, [members]);
 
   async function submit(event) {
     event.preventDefault();
+    if (members.length < 2 || !form.fromMemberId || !form.toMemberId || form.fromMemberId === form.toMemberId) return;
     await api(`/api/groups/${groupId}/payments`, { method: "POST", body: form });
     setForm((current) => ({ ...current, amount: "", notes: "" }));
     onCreated();
+  }
+
+  if (members.length < 2) {
+    return (
+      <div className="payment-form disabled-form">
+        <div className="empty-state compact-empty">
+          <Landmark size={18} />
+          <span>Add at least two members to record a payment.</span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -364,7 +406,9 @@ function PaymentForm({ groupId, members, onCreated }) {
       <label>To<select value={form.toMemberId} onChange={(event) => setForm({ ...form, toMemberId: event.target.value })}>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
       <label>Amount<input value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} /></label>
       <label>Notes<input value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></label>
-      <button className="small-button"><Landmark size={14} /> Record payment</button>
+      <button className="small-button" disabled={!form.amount || form.fromMemberId === form.toMemberId}>
+        <Landmark size={14} /> Record payment
+      </button>
     </form>
   );
 }
@@ -431,10 +475,13 @@ function ExpenseForm({ groupId, members, onCreated }) {
   });
 
   useEffect(() => {
+    const memberIds = new Set(members.map((member) => member.id));
     setForm((current) => ({
       ...current,
-      paidByMemberId: current.paidByMemberId || members[0]?.id || "",
-      participantIds: current.participantIds.length ? current.participantIds : members.map((member) => member.id)
+      paidByMemberId: memberIds.has(Number(current.paidByMemberId)) ? current.paidByMemberId : members[0]?.id || "",
+      participantIds: current.participantIds.filter((id) => memberIds.has(id)).length
+        ? current.participantIds.filter((id) => memberIds.has(id))
+        : members.map((member) => member.id)
     }));
   }, [members]);
 
@@ -463,6 +510,12 @@ function ExpenseForm({ groupId, members, onCreated }) {
       <div className="section-title">
         <h3>New expense</h3>
       </div>
+      {members.length === 0 ? (
+        <div className="empty-state">
+          <Users size={18} />
+          <span>Add members before creating expenses.</span>
+        </div>
+      ) : (
       <form className="expense-form" onSubmit={submit}>
         <label>Date<input type="date" value={form.expenseDate} onChange={(event) => update("expenseDate", event.target.value)} /></label>
         <label>Description<input value={form.description} onChange={(event) => update("description", event.target.value)} required /></label>
@@ -498,6 +551,7 @@ function ExpenseForm({ groupId, members, onCreated }) {
         </div>
         <button className="primary-button"><Plus size={16} /> Add expense</button>
       </form>
+      )}
     </section>
   );
 }
@@ -625,10 +679,34 @@ function Members({ groupId, memberships, onChanged }) {
     setForm({ displayName: "", joinedOn: today, leftOn: "" });
     onChanged();
   }
+  async function addAssignmentMembers() {
+    const people = [
+      ["Aisha", "2024-02-01", ""],
+      ["Rohan", "2024-02-01", ""],
+      ["Priya", "2024-02-01", ""],
+      ["Meera", "2024-02-01", "2024-03-31"],
+      ["Dev", "2024-03-01", "2024-03-31"],
+      ["Sam", "2024-04-15", ""]
+    ];
+    const existing = new Set(memberships.map((membership) => membership.display_name.toLowerCase()));
+    for (const [displayName, joinedOn, leftOn] of people) {
+      if (existing.has(displayName.toLowerCase())) continue;
+      await api(`/api/groups/${groupId}/memberships`, {
+        method: "POST",
+        body: { displayName, joinedOn, leftOn }
+      });
+    }
+    onChanged();
+  }
   return (
     <div className="stack">
       <section className="panel">
-        <h3>Add membership</h3>
+        <div className="section-title">
+          <h3>Add membership</h3>
+          <button className="small-button" onClick={addAssignmentMembers} type="button">
+            <Users size={14} /> Add flatmates
+          </button>
+        </div>
         <form className="member-form" onSubmit={add}>
           <label>Name<input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} required /></label>
           <label>Joined<input type="date" value={form.joinedOn} onChange={(event) => setForm({ ...form, joinedOn: event.target.value })} required /></label>
