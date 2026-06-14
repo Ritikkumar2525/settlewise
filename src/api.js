@@ -16,7 +16,11 @@ export async function api(path, options = {}) {
   };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(path, {
+  
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const fullPath = path.startsWith("http") ? path : `${baseUrl}${path}`;
+
+  const response = await fetch(fullPath, {
     ...options,
     headers,
     body: options.body && typeof options.body !== "string" ? JSON.stringify(options.body) : options.body

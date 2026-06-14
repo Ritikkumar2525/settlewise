@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: settlewise-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+    # Note: On a free tier, Render does not support persistent disks.
+    # The SQLite database in data/shared-expenses.sqlite will be reset on every restart.
+    # To persist data, upgrade to a paid tier and add a disk configuration here,
+    # or switch to an external database.
